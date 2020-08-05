@@ -1,34 +1,46 @@
 PODS:
-  - CorePlot (2.2)
-  - EVReflection (5.10.1):
-    - EVReflection/Core (= 5.10.1)
-  - EVReflection/Core (5.10.1)
-  - iOSDFULibrary (4.5.1):
-    - ZIPFoundation (= 0.9.9)
+  - AEXML (4.5.0)
+  - Charts (3.5.0):
+    - Charts/Core (= 3.5.0)
+  - Charts/Core (3.5.0)
+  - CorePlot (2.3)
+  - iOSDFULibrary (4.7.1):
+    - ZIPFoundation (= 0.9.11)
+  - McuManager (0.10.0):
+    - SwiftCBOR (= 0.4.3)
+  - SwiftCBOR (0.4.3)
   - SWRevealViewController (2.3.0)
-  - ZIPFoundation (0.9.9)
+  - ZIPFoundation (0.9.11)
 
 DEPENDENCIES:
+  - AEXML (~> 4.5)
+  - Charts (~> 3.5)
   - CorePlot (~> 2.2)
-  - EVReflection (~> 5.10)
-  - iOSDFULibrary (~> 4.5)
+  - iOSDFULibrary (~> 4.7)
+  - McuManager (~> 0.10)
   - SWRevealViewController (~> 2.3)
 
 SPEC REPOS:
   trunk:
+    - AEXML
+    - Charts
     - CorePlot
-    - EVReflection
     - iOSDFULibrary
+    - McuManager
+    - SwiftCBOR
     - SWRevealViewController
     - ZIPFoundation
 
 SPEC CHECKSUMS:
-  CorePlot: cbe0c6e14220705e32e06a89c7d6a5a908b7d7d8
-  EVReflection: 8124de482178d34ccd56473e16cd95990f9a1113
-  iOSDFULibrary: 87c6a088cf7172e3694dfaa8305e7ded5eda2547
+  AEXML: 0e8f1d874fa033ca6b3909452a8bc362faad46e6
+  Charts: 40a08591df1f8ad5c223ddedfb1a06da92f24f7c
+  CorePlot: 6bfe6d30d215beec3cfd18ee43e434620119bc1e
+  iOSDFULibrary: f912fa3880137df8d81bf220dd70ebe036f2d601
+  McuManager: a734d3ef5cbf2fb6021388c79f8c7895b3281e38
+  SwiftCBOR: c7d740966575e0fd5d971466de2b6776db3f10c3
   SWRevealViewController: 6d3fd97f70112fd7cef9de14df4260eacce4c63a
-  ZIPFoundation: 89df685c971926b0323087952320bdfee9f0b6ef
+  ZIPFoundation: b1f0de4eed33e74a676f76e12559ab6b75990197
 
-PODFILE CHECKSUM: e63e497672ffb7a26516a3b96d0fbf9b2b37428c
+PODFILE CHECKSUM: 231a987b95c8a931837051e6800bdf1778d188ee
 
-COCOAPODS: 1.8.0.beta.1
+COCOAPODS: 1.9.3

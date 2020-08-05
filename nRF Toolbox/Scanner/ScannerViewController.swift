@@ -1,10 +1,34 @@
-//
-//  ScannerViewController.swift
-//  nRF Toolbox
-//
-//  Created by Mostafa Berg on 28/04/16.
-//  Copyright © 2016 Nordic Semiconductor. All rights reserved.
-//
+/*
+* Copyright (c) 2020, Nordic Semiconductor
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without modification,
+* are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice, this
+*    list of conditions and the following disclaimer.
+*
+* 2. Redistributions in binary form must reproduce the above copyright notice, this
+*    list of conditions and the following disclaimer in the documentation and/or
+*    other materials provided with the distribution.
+*
+* 3. Neither the name of the copyright holder nor the names of its contributors may
+*    be used to endorse or promote products derived from this software without
+*    specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+* INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+* NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+* PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
 
 import UIKit
 import CoreBluetooth
@@ -29,8 +53,7 @@ fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
   }
 }
 
-
-class ScannerViewController: UIViewController, CBCentralManagerDelegate, UITableViewDelegate, UITableViewDataSource {
+class ScannerViewController: UITableViewController, CBCentralManagerDelegate {
 
     let dfuServiceUUIDString  = "00001530-1212-EFDE-1523-785FEABCD123"
     let ANCSServiceUUIDString = "7905F431-B5CE-4E99-A40F-4B1E122D00D0"
@@ -39,7 +62,7 @@ class ScannerViewController: UIViewController, CBCentralManagerDelegate, UITable
     var bluetoothManager : CBCentralManager?
     var delegate         : ScannerDelegate?
     var filterUUID       : CBUUID?
-    var peripherals      : [ScannedPeripheral]
+    var peripherals      : [DiscoveredPeripheral]
     var timer            : Timer?
     
     @IBOutlet weak var devicesTable: UITableView!
@@ -149,20 +172,20 @@ class ScannerViewController: UIViewController, CBCentralManagerDelegate, UITable
     }
 
     //MARK: - UITableViewDataSource
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return peripherals.count
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        peripherals.count
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let aCell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         
         //Update cell content
         let scannedPeripheral = peripherals[indexPath.row]
-        aCell.textLabel?.text = scannedPeripheral.name()
+        aCell.textLabel?.text = scannedPeripheral.name
         if scannedPeripheral.isConnected == true {
             aCell.imageView!.image = UIImage(named: "Connected")
         } else {
-            let RSSIImage = self.getRSSIImage(RSSI: scannedPeripheral.RSSI)
+            let RSSIImage = self.getRSSIImage(RSSI: scannedPeripheral.rssi)
             aCell.imageView!.image = RSSIImage
         }
         
@@ -170,7 +193,7 @@ class ScannerViewController: UIViewController, CBCentralManagerDelegate, UITable
     }
 
     //MARK: - UITableViewDelegate
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         bluetoothManager!.stopScan()
         // Call delegate method
         let peripheral = peripherals[indexPath.row].peripheral
@@ -186,10 +209,9 @@ class ScannerViewController: UIViewController, CBCentralManagerDelegate, UITable
         }
 
         let connectedPeripherals = self.getConnectedPeripherals()
-        var newScannedPeripherals: [ScannedPeripheral] = []
+        var newScannedPeripherals: [DiscoveredPeripheral] = []
         connectedPeripherals.forEach { (connectedPeripheral: CBPeripheral) in
-            let connected = connectedPeripheral.state == .connected
-            let scannedPeripheral = ScannedPeripheral(withPeripheral: connectedPeripheral, andIsConnected: connected )
+            let scannedPeripheral = DiscoveredPeripheral(with: connectedPeripheral )
             newScannedPeripherals.append(scannedPeripheral)
         }
         peripherals = newScannedPeripherals
@@ -202,10 +224,10 @@ class ScannerViewController: UIViewController, CBCentralManagerDelegate, UITable
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         // Scanner uses other queue to send events. We must edit UI in the main queue
         DispatchQueue.main.async {
-            var sensor = ScannedPeripheral(withPeripheral: peripheral, andRSSI: RSSI.int32Value, andIsConnected: false)
+            var sensor = DiscoveredPeripheral(with: peripheral, RSSI: RSSI.int32Value)
             if let index = self.peripherals.firstIndex(of: sensor) {
                 sensor = self.peripherals[index]
-                sensor.RSSI = RSSI.int32Value
+                sensor.rssi = RSSI.int32Value
             } else {
                 self.peripherals.append(sensor)
             }

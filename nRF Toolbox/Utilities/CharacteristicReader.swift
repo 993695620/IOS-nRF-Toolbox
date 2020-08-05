@@ -1,10 +1,34 @@
-//
-//  CharacteristicReader.swift
-//  nRF Toolbox
-//
-//  Created by Mostafa Berg on 18/05/16.
-//  Copyright © 2016 Nordic Semiconductor. All rights reserved.
-//
+/*
+* Copyright (c) 2020, Nordic Semiconductor
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without modification,
+* are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice, this
+*    list of conditions and the following disclaimer.
+*
+* 2. Redistributions in binary form must reproduce the above copyright notice, this
+*    list of conditions and the following disclaimer in the documentation and/or
+*    other materials provided with the distribution.
+*
+* 3. Neither the name of the copyright holder nor the names of its contributors may
+*    be used to endorse or promote products derived from this software without
+*    specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+* INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+* NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+* PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
 
 import Foundation
 
@@ -13,13 +37,14 @@ struct Nibble {
     var second : UInt8
 }
 
-
 enum ReservedSFloatValues : Int16 {
     case positiveInfinity = 0x07FE
     case nan = 0x07FF
     case nres = 0x0800
     case reserved = 0x0801
     case negativeInfinity = 0x0802
+    
+    static let firstReservedValue = ReservedSFloatValues.positiveInfinity
 }
 
 enum ReservedFloatValues : UInt32 {
@@ -28,11 +53,15 @@ enum ReservedFloatValues : UInt32 {
     case nres = 0x00800000
     case reserved = 0x00800001
     case negativeInfinity = 0x00800002
+    
+    static let firstReservedValue = ReservedFloatValues.positiveInfinity
 }
 
-let FIRST_S_RESERVED_VALUE = ReservedSFloatValues.positiveInfinity
-let FIRST_RESERVED_VALUE   = ReservedFloatValues.positiveInfinity
-let RESERVED_FLOAT_VALUES  = [Double.infinity, Double.nan, Double.nan, Double.nan, -Double.infinity]
+extension Double {
+    static var reservedValues: [Double] {
+        [.infinity, .nan, .nan, .nan, -.infinity]
+    }
+}
 
 struct CharacteristicReader {
 
@@ -43,7 +72,7 @@ struct CharacteristicReader {
     }
     
     static func readSInt8Value(ptr aPointer : UnsafeMutablePointer<UInt8>) -> Int8 {
-        return Int8(aPointer.successor().pointee)
+        Int8(aPointer.successor().pointee)
     }
 
     static func readUInt16Value(ptr aPointer : inout UnsafeMutablePointer<UInt8>) -> UInt16 {
@@ -74,6 +103,29 @@ struct CharacteristicReader {
         return Int32(val)
     }
     
+    static func readSFloat(_ data: Data, offset: Int) throws -> Float32 {
+        let tempData: UInt16 = try data.read(fromOffset: offset)
+        var mantissa = Int16(tempData & 0x0FFF)
+        var exponent = Int8(tempData >> 12)
+        if exponent >= 0x0008 {
+            exponent = -( (0x000F + 1) - exponent )
+        }
+        
+        var output : Float32 = 0
+        
+        if mantissa >= ReservedSFloatValues.firstReservedValue.rawValue && mantissa <= ReservedSFloatValues.negativeInfinity.rawValue {
+            output = Float32(Double.reservedValues[Int(mantissa - ReservedSFloatValues.firstReservedValue.rawValue)])
+        } else {
+            if mantissa > 0x0800 {
+                mantissa = -((0x0FFF + 1) - mantissa)
+            }
+            let magnitude = pow(10.0, Double(exponent))
+            output = Float32(mantissa) * Float32(magnitude)
+        }
+        
+        return output
+    }
+    
     static func readSFloatValue(ptr aPointer : inout UnsafeMutablePointer<UInt8>) -> Float32 {
         let tempData = CFSwapInt16LittleToHost(UnsafeMutablePointer<UInt16>(OpaquePointer(aPointer)).pointee)
         var mantissa = Int16(tempData & 0x0FFF)
@@ -84,8 +136,8 @@ struct CharacteristicReader {
 
         var output : Float32 = 0
         
-        if mantissa >= FIRST_S_RESERVED_VALUE.rawValue && mantissa <= ReservedSFloatValues.negativeInfinity.rawValue {
-            output = Float32(RESERVED_FLOAT_VALUES[Int(mantissa - FIRST_S_RESERVED_VALUE.rawValue)])
+        if mantissa >= ReservedSFloatValues.firstReservedValue.rawValue && mantissa <= ReservedSFloatValues.negativeInfinity.rawValue {
+            output = Float32(Double.reservedValues[Int(mantissa - ReservedSFloatValues.firstReservedValue.rawValue)])
         } else {
             if mantissa > 0x0800 {
                 mantissa = -((0x0FFF + 1) - mantissa)
@@ -105,8 +157,8 @@ struct CharacteristicReader {
         
         var output : Float32 = 0
         
-        if mantissa >= Int32(FIRST_RESERVED_VALUE.rawValue) && mantissa <= Int32(ReservedFloatValues.negativeInfinity.rawValue) {
-            output = Float32(RESERVED_FLOAT_VALUES[Int(mantissa - Int32(FIRST_S_RESERVED_VALUE.rawValue))])
+        if mantissa >= Int32(ReservedFloatValues.firstReservedValue.rawValue) && mantissa <= Int32(ReservedFloatValues.negativeInfinity.rawValue) {
+            output = Float32(Double.reservedValues[Int(mantissa - Int32(ReservedSFloatValues.firstReservedValue.rawValue))])
         } else {
             if mantissa >= 0x800000 {
                 mantissa = -((0xFFFFFF + 1) - mantissa)
